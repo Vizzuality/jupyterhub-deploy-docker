@@ -21,7 +21,7 @@ c.DockerSpawner.environment = {
 # Spawn containers from this image
 #c.DockerSpawner.image = os.environ['DOCKER_NOTEBOOK_IMAGE']
 c.DockerSpawner.image_whitelist =  { 
-   #'Full docker image': os.environ['DOCKER_NOTEBOOK_IMAGE'], 
+   'Full docker image': 'fullimage', 
    'clean': 'clean' 
 }
 # JupyterHub requires a single-user instance of the Notebook server, so we
