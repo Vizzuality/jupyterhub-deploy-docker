@@ -50,13 +50,22 @@ check-files: userlist $(cert_files) secrets/oauth.env secrets/postgres.env
 pull:
 	docker pull $(DOCKER_NOTEBOOK_IMAGE)
 
+custom_images:
+	./custom-notebook-servers/build_images.sh
+
 notebook_image: pull singleuser/Dockerfile
 	docker build -t $(LOCAL_NOTEBOOK_IMAGE) \
 		--build-arg JUPYTERHUB_VERSION=$(JUPYTERHUB_VERSION) \
 		--build-arg DOCKER_NOTEBOOK_IMAGE=$(DOCKER_NOTEBOOK_IMAGE) \
 		singleuser
 
-build: check-files network volumes
-	docker-compose build
+build-develop: check-files network volumes notebook_image custom_images
+	docker-compose build && docker-compose up
 
-.PHONY: network volumes check-files pull notebook_image build
+build: check-files network volumes notebook_image custom_images
+	docker-compose build && docker-compose up -d
+
+down:
+	docker-compose down
+
+.PHONY: network volumes check-files pull notebook_image custom_images build-develop build down

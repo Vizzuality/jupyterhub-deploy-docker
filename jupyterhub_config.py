@@ -2,18 +2,28 @@
 # Distributed under the terms of the Modified BSD License.
 
 # Configuration file for JupyterHub
+from oauthenticator.github import GitHubOAuthenticator
 import os
+import sys
 
 c = get_config()
-
 # We rely on environment variables to configure JupyterHub so that we
 # avoid having to rebuild the JupyterHub container every time we change a
 # configuration parameter.
 
 # Spawn single-user servers as Docker containers
 c.JupyterHub.spawner_class = 'dockerspawner.DockerSpawner'
+c.JupyterHub.cleanup_servers = True
+c.DockerSpawner.remove_containers = True
+c.DockerSpawner.environment = {
+    'GIT_TOKEN': os.environ['GIT_TOKEN']
+}
 # Spawn containers from this image
-c.DockerSpawner.container_image = os.environ['DOCKER_NOTEBOOK_IMAGE']
+#c.DockerSpawner.image = os.environ['DOCKER_NOTEBOOK_IMAGE']
+c.DockerSpawner.image_whitelist =  { 
+   #'Full docker image': os.environ['DOCKER_NOTEBOOK_IMAGE'], 
+   'clean': 'clean' 
+}
 # JupyterHub requires a single-user instance of the Notebook server, so we
 # default to using the `start-singleuser.sh` script included in the
 # jupyter/docker-stacks *-notebook images as the Docker run command when
@@ -35,7 +45,12 @@ notebook_dir = os.environ.get('DOCKER_NOTEBOOK_DIR') or '/home/jovyan/work'
 c.DockerSpawner.notebook_dir = notebook_dir
 # Mount the real user's Docker volume on the host to the notebook user's
 # notebook directory in the container
-c.DockerSpawner.volumes = { 'jupyterhub-user-{username}': notebook_dir }
+c.DockerSpawner.volumes = { 'jupyterhub-user-{username}': notebook_dir,
+                            '/home/vizzuality/localData': f'{notebook_dir}/data'}
+#c.DockerSpawner.volumes = {'/mnt/users': {'bind': '/home/{username}/_users', 'mode': 'ro'},
+#                           '/mnt/data/data1/thredds': {'bind': '/home/{username}/_data', 'mode': 'ro'},
+#                           '/mnt/data/data2/cordex-fpsc': {'bind': '/home/{username}/_cordex-fpsc', 'mode': 'ro'},
+#}
 # volume_driver is no longer a keyword argument to create_container()
 # c.DockerSpawner.extra_create_kwargs.update({ 'volume_driver': 'local' })
 # Remove containers once they are stopped
@@ -47,13 +62,26 @@ c.DockerSpawner.debug = True
 c.JupyterHub.hub_ip = 'jupyterhub'
 c.JupyterHub.hub_port = 8080
 
+c.JupyterHub.services = [
+    {
+        'name': 'idle-culler',
+        'admin': True,
+        'command': [
+            sys.executable,
+            '-m', 'jupyterhub_idle_culler',
+            '--timeout=3600'
+        ],
+    }
+]
+
 # TLS config
 c.JupyterHub.port = 443
 c.JupyterHub.ssl_key = os.environ['SSL_KEY']
 c.JupyterHub.ssl_cert = os.environ['SSL_CERT']
 
 # Authenticate users with GitHub OAuth
-c.JupyterHub.authenticator_class = 'oauthenticator.GitHubOAuthenticator'
+c.JupyterHub.authenticator_class = GitHubOAuthenticator
+#c.JupyterHub.authenticator_class = 'oauthenticator.GitHubOAuthenticator'
 c.GitHubOAuthenticator.oauth_callback_url = os.environ['OAUTH_CALLBACK_URL']
 
 # Persist hub data on volume mounted inside container
@@ -67,7 +95,11 @@ c.JupyterHub.db_url = 'postgresql://postgres:{password}@{host}/{db}'.format(
     password=os.environ['POSTGRES_PASSWORD'],
     db=os.environ['POSTGRES_DB'],
 )
+## Paths to search for jinja templates, before using the default templates.
+c.JupyterHub.template_paths = ['/etc/jupyterhub/templates']
 
+#c.JupyterHub.template_vars = {'logo_url': '/hub/static/images/logo-eucp.png',
+#                              'eucp_url': 'https://www.eucp-project.eu' }
 # Whitlelist users and admins
 c.Authenticator.whitelist = whitelist = set()
 c.Authenticator.admin_users = admin = set()

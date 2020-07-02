@@ -2,13 +2,13 @@
 # Distributed under the terms of the Modified BSD License.
 
 # JupyterHub docker-compose configuration file
-version: "2"
+version: "3"
 
 services:
   hub-db:
     image: postgres:9.5
     container_name: jupyterhub-db
-    restart: always
+    restart: on-failure
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       PGDATA: ${DB_VOLUME_CONTAINER}
@@ -16,8 +16,7 @@ services:
       - secrets/postgres.env
     volumes:
       - "db:${DB_VOLUME_CONTAINER}"
-
-  hub:
+  migration-hub:
     depends_on:
       - hub-db
     build:
@@ -25,17 +24,14 @@ services:
       dockerfile: Dockerfile.jupyterhub
       args:
         JUPYTERHUB_VERSION: ${JUPYTERHUB_VERSION}
-    restart: always
     image: jupyterhub
-    container_name: jupyterhub
+    container_name: migration-hub
     volumes:
       # Bind Docker socket on the host so we can connect to the daemon from
       # within the container
       - "/var/run/docker.sock:/var/run/docker.sock:rw"
       # Bind Docker volume on host for JupyterHub database and cookie secrets
       - "data:${DATA_VOLUME_CONTAINER}"
-    ports:
-      - "443:443"
     links:
       - hub-db
     environment:
@@ -47,6 +43,46 @@ services:
       DOCKER_NOTEBOOK_DIR: ${DOCKER_NOTEBOOK_DIR}
       # Using this run command (optional)
       DOCKER_SPAWN_CMD: ${DOCKER_SPAWN_CMD}
+      # Postgres db info
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST: hub-db
+    env_file:
+      - secrets/postgres.env
+      - secrets/oauth.env
+    command: >
+      jupyterhub upgrade-db
+  hub:
+    depends_on:
+      - migration-hub
+    build:
+      context: .
+      dockerfile: Dockerfile.jupyterhub
+      args:
+        JUPYTERHUB_VERSION: ${JUPYTERHUB_VERSION}
+    restart: on-failure
+    image: jupyterhub
+    container_name: jupyterhub
+    volumes:
+      # Bind Docker socket on the host so we can connect to the daemon from
+      # within the container
+      - "/var/run/docker.sock:/var/run/docker.sock:rw"
+      # Bind Docker volume on host for JupyterHub database and cookie secrets
+      - "data:${DATA_VOLUME_CONTAINER}"
+    ports:
+      - "443:443"
+        # - "80:8080"
+    links:
+      - hub-db
+    environment:
+      # All containers will join this network
+      DOCKER_NETWORK_NAME: ${DOCKER_NETWORK_NAME}
+      # JupyterHub will spawn this Notebook image for users
+      DOCKER_NOTEBOOK_IMAGE: ${LOCAL_NOTEBOOK_IMAGE}
+      # Notebook directory inside user image
+      DOCKER_NOTEBOOK_DIR: ${DOCKER_NOTEBOOK_DIR}
+      # Using this run command (optional)
+      DOCKER_SPAWN_CMD: ${DOCKER_SPAWN_CMD}
+      GIT_TOKEN: ${GIT_TOKEN}
       # Postgres db info
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_HOST: hub-db

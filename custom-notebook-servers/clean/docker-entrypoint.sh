@@ -10,10 +10,11 @@ if [ "$(which "$1")" = "/usr/local/bin/start-singleuser.sh" ]; then
   # directory if notebook directory not explicitly set.  `git clone` will fail
   # if target directory already exists and is not empty, which likely means
   # that we've already done it, so just ignore.
-  : ${NOTEBOOK_DIR:=/home/$NB_USER/work}
-  git clone https://gist.github.com/parente/facb555dfbae28e817e0 \
+  : ${NOTEBOOK_DIR:=/home/$NB_USER/work/notebooks}
+  git clone https://${GIT_TOKEN:-aagm}@github.com/Vizzuality/sci_team_data_bank.git \
     --depth 1 \
-    "$NOTEBOOK_DIR/notebook_count" || true
+    "$NOTEBOOK_DIR/sci_team_data_bank" || true;
+  ## we will attepmt to install / setup this.
 fi
 
 # Run the command provided
