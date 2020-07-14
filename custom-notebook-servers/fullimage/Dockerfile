@@ -48,7 +48,8 @@ Run git clone https://github.com/mapbox/tippecanoe.git && \
 	make -j && make install && cd ..
 RUN export CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 # Having to install gdal through conda gaves me chills; trying installing it through pip is failing badly. no time to dig depply on what is going on probably issues with path.
-RUN conda install -c conda-forge python==3.8 python-blosc cytoolz gdal dask==2.17.2 xhistogram lz4 nomkl dask-labextension==2.0.2 python-graphviz tini==0.18.0
+RUN conda install -c conda-forge python==3.8 python-blosc cytoolz gdal dask==2.17.2 xhistogram lz4 nomkl dask-labextension==2.0.2 python-graphviz tini==0.18.0 earthengine-api==0.1.215 google-cloud-storage==1.26.0 oauth2client==4.1.3
+RUN pip install -e git+https://github.com/fgassert/eeUtil.git#egg=eeUtil
 # Add requirements file 
 ADD requirements.txt /srv/
 Run pip install wheel -r /srv/requirements.txt
