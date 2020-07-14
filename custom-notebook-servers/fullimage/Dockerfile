@@ -56,9 +56,12 @@ Run pip install wheel -r /srv/requirements.txt
 RUN jupyter nbextension install --sys-prefix --py vega && jupyter nbextension enable vega --py --sys-prefix && jupyter nbextension enable --py --sys-prefix ipyleaflet && jupyter labextension install @jupyter-widgets/jupyterlab-manager dask-labextension@2.0.2 
 
 COPY docker-entrypoint.sh /srv/docker-entrypoint.sh
+COPY jupyter_notebook_config.py /etc/jupyter/
+COPY overrides.json /opt/conda/share/jupyter/lab/settings/overrides.json
+
 ENTRYPOINT ["tini","-g", "--", "/srv/docker-entrypoint.sh"]
 CMD ["start-singleuser.sh"]
 
 USER jovyan
 
-RUN mkdir /home/jovyan/work/data
+RUN mkdir /home/jovyan/data

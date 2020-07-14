@@ -18,4 +18,4 @@ CMD ["start-singleuser.sh"]
 
 USER jovyan
 
-RUN mkdir /home/jovyan/work/data
+RUN mkdir /home/jovyan/data
